@@ -50,7 +50,9 @@ section .text
 		mov ecx,0777 ;Permiso de lectura, escritura y ejecucion para todos.
 		int 80h ;invocacion al servicio.
 		
-		mov arch_entrada,eax
+		mov DWORD[arch_entrada],eax
+		mov ecx,buffer
+		mov esi,0
 		call leer_consola ;Salta a leer_consola 
 		call leer_archivo
 		call calcular_metricas ;Salta a calcular_metricas
@@ -59,9 +61,8 @@ section .text
 
 	abrir_archivo_entrada:
 		mov eax,5 ;servicio sys_open
-		pop eax
-		mov ebx,eax ;Nombre del archivo
-		mov ecx, 0 ;0 flags (?)
+		mov ebx,DWORD[arch_entrada] ;Nombre del archivo
+		mov ecx, 0 ;0 flags
 		mov edx,0777 ;Permiso de lectura, escritura y ejecucion para todos.
 		int 80h ;invocacion del servicio
 		cmp eax,0 ;Comparo el valor de eax con 0
@@ -101,11 +102,11 @@ section .text
 		
 	un_parametro_archivo:
 		;Si no empieza con guion, asume archivo entrada. Salta a calcular_metricas
-		mov eax,ecx
-		push eax
+		mov DWORD[arch_entrada],ecx
 		call abrir_archivo_entrada
-		call leer_archivo
-		call calcular_metricas 
+		mov ecx,buffer
+		mov esi,0
+		call leer_archivo 
 	        call mostrar_metricas ;Salta a mostrar_metricas.
 		jmp salgo_sin_errores
 
@@ -153,50 +154,58 @@ section .text
 	leer_consola:  
 		mov eax,3 ;Servicio sys_read.
 		mov ebx,0 ;entrada estandar.
-		mov ecx,buffer ;Lee caracteres de la consola.
 		mov edx,1000000 ;tamaño caracter.
 		int 80h ;invocacion al servicio.
-		cmp BYTE[ecx],0h
-		je escribir_temporal
-		jmp leer_consola
+		add ecx,eax
+		add esi,eax
+		cmp BYTE[buffer + esi - 2],2Dh
+		jne leer_consola
+		mov ecx,buffer
 		
 	escribir_temporal:
 		mov eax,4 ;Servicio sys_write
-		mov ebx,arch_entrada ;descriptor del archivo
-		mov ecx,buffer ;escribe caracteres en el archivo
-		mov edx,1000000 ;tamaño del caracter.
+		mov ebx,DWORD[arch_entrada] ;Escribe en pantalla		
+		mov edx,1 ;tamaño del caracter.
 		int 80h ;invocacion al servicio
+		dec esi
+		cmp esi,0
+		inc ecx
+		jne escribir_temporal
+		
 
 	leer_archivo:
-		;Leo el caracter
 		mov eax,3 ;Servicio sys_read.
-		mov ebx,arch_entrada ;descriptor de archivo.
-		mov ecx,buffer ;Lee caracter.
-		mov edx,5242880 ;tamaño caracter.
-		int 80h ;invocacion al servicio
-		push ecx
-		ret
+		mov ebx,DWORD[arch_entrada] ;entrada estandar.
+		mov edx,1000000 ;tamaño caracter.
+		int 80h ;invocacion al servicio.
+		add ecx,eax
+		add esi,eax
+		cmp BYTE[buffer + esi - 2],2Dh
+		jne leer_archivo
+		mov ecx,buffer
+		mov edi,0
+
 	calcular_metricas:	
-		;cambio todos los caracter por ecx e incremento para avanzar
-		cmp BYTE[ecx],41h ;Comparo el caracter con el numero 41('A' en hexa)
+		
+		cmp BYTE[buffer+edi],41h ;Comparo el caracter con el numero 41('A' en hexa)
 		jge mayor_A ;Salto a mayor_A
-		cmp BYTE[ecx],0Ah ;Comparo el caracter con el numero 0A(salto de linea en hexa)
+		cmp BYTE[buffer+edi],0Ah ;Comparo el caracter con el numero 0A(salto de linea en hexa)
 		je salto_de_linea ;Salto a salto_de_linea
-		cmp BYTE[ecx],20h ;Comparo el caracter con el numero 20(' ' en hexa)
+		cmp BYTE[buffer+edi],20h ;Comparo el caracter con el numero 20(' ' en hexa)
 		jge mayor_espacio ;Salto a mayor_espacio
-		cmp BYTE[ecx],03h ;Comparo el caracter con el numero 03( end of file en hexa)
+		cmp BYTE[buffer+edi],03h ;Comparo el caracter con el numero 03( end of file en hexa)
 		jmp seguir
-		inc ecx
+		inc edi
 		call calcular_metricas
 
 	mayor_A:
-		cmp BYTE[ecx],5Ah ;Comparo el caracter con el numero 5A('Z' en hexa)
+		cmp BYTE[buffer+edi],5Ah ;Comparo el caracter con el numero 5A('Z' en hexa)
 		jle es_letra ;Salto a es_letra
-		cmp BYTE[ecx],61h ;Comparo el caracter con el numero 61('a' en hexa)
+		cmp BYTE[buffer+edi],61h ;Comparo el caracter con el numero 61('a' en hexa)
 		jge mayor_a ;Salto a mayor_a
 
 	mayor_a:
-		cmp BYTE[ecx],7Ah ;Comparo el caracter con el numero 7A('z' en hexa)
+		cmp BYTE[buffer+edi],7Ah ;Comparo el caracter con el numero 7A('z' en hexa)
 		jle es_letra ;Salto a es_letra
 		
 
@@ -229,19 +238,19 @@ section .text
 		inc DWORD[contador_parrafos] ;Incremento a contador_parrafo
 
 	mayor_espacio:
-		cmp BYTE[ecx],40h ;Comparo el caracter con el numero 40('@' en hexa)
+		cmp BYTE[buffer+edi],40h ;Comparo el caracter con el numero 40('@' en hexa)
 		jle separador ;Salta a separador.
-		cmp BYTE[ecx],5Bh ;Comparo el caracter con el numero 5B('[' en hexa)
+		cmp BYTE[buffer+edi],5Bh ;Comparo el caracter con el numero 5B('[' en hexa)
 		jge mayor_corchete ;Salto a mayor_corchete
 
 	mayor_corchete:
-		cmp BYTE[ecx],60h ;Comparo el caracter con el numero 60h('-' en hexa)
+		cmp BYTE[buffer+edi],60h ;Comparo el caracter con el numero 60h('-' en hexa)
 		jle separador ;Salta a separador.
-		cmp BYTE[ecx],7Bh ;Comparo el caracter con el numero 7Bh('{' en hexa)
+		cmp BYTE[buffer+edi],7Bh ;Comparo el caracter con el numero 7Bh('{' en hexa)
 		jge mayor_llave ;Salto a mayor llave
 
 	mayor_llave:
-		cmp BYTE[ecx],7Eh ;Comparo el caracter con el numero 7Eh('~' en hexa)
+		cmp BYTE[buffer+edi],7Eh ;Comparo el caracter con el numero 7Eh('~' en hexa)
 		jle separador ;Salta a sepador.
 		
 	
