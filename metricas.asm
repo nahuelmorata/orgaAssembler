@@ -257,4 +257,91 @@ section .text
 	mostrar_metricas:
 		mov eax,4 ;Servicio sys_write.
 		mov ebx,1 ;salida estandar.
-		mov ecx,contad
+		mov ecx,contador_letras ;mensaje a mostrar.
+		mov edx,32 ;largo del mensaje.
+		int 80h ;invocacion al servicio.
+		
+		mov eax,4 ;Servicio sys_write.
+		mov ebx,1 ;salida estandar.
+		mov ecx,contador_palabras ;mensaje a mostrar.
+		mov edx,32 ;largo del mensaje.
+		int 80h ;invocacion al servicio.
+
+		mov eax,4 ;Servicio sys_write.
+		mov ebx,1 ;salida estandar.
+		mov ecx,contador_lineas ;mensaje a mostrar.
+		mov edx,32 ;largo del mensaje.
+		int 80h ;invocacion al servicio.
+
+		mov eax,4 ;Servicio sys_write.
+		mov ebx,1 ;salida estandar.
+		mov ecx,contador_parrafos ;mensaje a mostrar.
+		mov edx,32 ;largo del mensaje.
+		int 80h ;invocacion al servicio.
+	
+	escribir_metricas:
+		mov eax,4 ;Servicio sys_write
+		pop eax
+		mov ebx,eax ;descriptor del archivo
+		mov ecx,[contador_letras] ;caracter a escribir
+		mov edx,32 ;tamaño del caracter.
+		int 80h;
+		push eax
+		mov eax,4 ;Servicio sys_write
+		pop eax
+		mov ebx,eax ;descriptor del archivo
+		mov ecx,[contador_palabras] ;caracter a escribir
+		mov edx,32 ;tamaño del caracter.
+		int 80h;
+		push eax
+		mov eax,4 ;Servicio sys_write
+		pop eax
+		mov ebx,eax ;descriptor del archivo
+		mov ecx,[contador_lineas] ;caracter a escribir
+		mov edx,32 ;tamaño del caracter.
+		int 80h;
+		push eax
+		mov eax,4 ;Servicio sys_write
+		pop eax
+		mov ebx,eax ;descriptor del archivo
+		mov ecx,[contador_parrafos] ;caracter a escribir
+		mov edx,32 ;tamaño del caracter.
+		int 80h;
+		
+	error_ingreso_invalido:
+		mov eax,4 ;Servicio sys_write
+		mov ebx,1 ;salida estandar
+		mov ecx,error_guionh ;texto a mostrar.
+		mov edx,largo_error_guionh ;tamaño del texto.
+		int 80h;
+		mov eax,1 ;servicio sys_exit.
+		mov ebx,3 ;Terminacion anormal por otras causas.
+		int 80h ;invocacion al servicio.
+
+	error_abrir_entrada:
+		mov eax,4 ;Servicio sys_write
+		mov ebx,1 ;salida estandar
+		mov ecx,error_archivo_entrada ;texto a mostrar.
+		mov edx,largo_error_archivo_entrada ;tamaño del texto.
+		int 80h;
+		mov eax,1 ;servicio sys_exit.
+		mov ebx,1 ;Terminacion anormal por error en el archivo de entrada.
+		int 80h ;invocacion al servicio.
+
+	error_abrir_salida:
+		mov eax,4 ;Servicio sys_write
+		mov ebx,1 ;salida estandar
+		mov ecx,error_archivo_salida ;texto a mostrar.
+		mov edx,largo_error_archivo_salida ;tamaño del texto.
+		int 80h;
+		mov eax,1 ;servicio sys_exit.
+		mov ebx,2 ;Terminacion anormal por error en el archivo de salida.
+		int 80h ;invocacion al servicio.
+		
+	mostrar_ayuda:
+		mov eax,4 ;Servicio sys_write
+		mov ebx,1 ;salida estandar
+		mov ecx,ayuda ;texto a mostrar.
+		mov edx,largo_ayuda ;tamaño del texto.
+		int 80h;
+		jmp salgo_sin_errores ;Salta a salgo_sin_errores
