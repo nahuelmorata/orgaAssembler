@@ -21,11 +21,13 @@ section .data
 	largo_error_guionh equ $ - error_guionh
 
 	ayuda db "Ayuda.",10
-	largo_ayuda equ $ - ayuda ;$
+	largo_ayuda equ $ - ayuda 
+
+	espacio db " ",0
+	largo_espacio equ $ -espacio
 
 section .bss
 	buffer resb 1000000 ;Reserva 1MB 
-	caracter resb 1 ;Reserva 1 byte
 	arch_entrada resb 1
 	arch_salida resb 1
 
@@ -54,10 +56,12 @@ section .text
 		mov ecx,buffer
 		mov esi,0
 		call leer_consola ;Salta a leer_consola 
-		call leer_archivo
+		call leer_archivo ;Salta a leer_archivo
+		mov edi,0 
 		call calcular_metricas ;Salta a calcular_metricas
-		call mostrar_metricas ;Salta a mostrar_metricas
-		jmp salgo_sin_errores ;Salta a salgo_sin_errores
+		mov ebx,DWORD[arch_entrada]
+		call cerrar_archivo
+		jmp mostrar_metricas ;Salta a mostrar_metricas
 
 	abrir_archivo_entrada:
 		mov eax,5 ;servicio sys_open
@@ -71,9 +75,8 @@ section .text
 
 	abrir_archivo_salida:
 		mov eax,5 ;servicio sys_open
-		pop eax
-		mov ebx,[eax] ;Nombre del archivo
-		mov ecx, 0 ;0 flags (?)
+		mov ebx,DWORD[arch_salida] ;Nombre del archivo
+		mov ecx, 0 ;0 flags
 		mov edx,0777 ;Permiso de lectura, escritura y ejecucion para todos.
 		int 80h ;invocacion del servicio
 		cmp eax,0 ;Comparo el valor de eax con 0
@@ -82,8 +85,6 @@ section .text
 
 	cerrar_archivo:
 		mov eax,6 ;servicio sys_close
-		pop eax ;recupero eax de la pila
-		mov ebx,eax ;descriptor del archivo
 		int 80h ;invocacion del servicio.
 		ret
 	 
@@ -104,36 +105,27 @@ section .text
 		;Si no empieza con guion, asume archivo entrada. Salta a calcular_metricas
 		mov DWORD[arch_entrada],ecx
 		call abrir_archivo_entrada
-		mov ecx,buffer
-		mov esi,0
 		call leer_archivo 
-	        call mostrar_metricas ;Salta a mostrar_metricas.
-		jmp salgo_sin_errores
+		mov edi,0
+		call calcular_metricas
+		mov ebx,DWORD[arch_entrada]
+		cerrar_archivo
+	        jmp mostrar_metricas ;Salta a mostrar_metricas.
 
 	dos_parametros:
 		pop ebx
-		call primer_parametro
-		call segundo_parametro
-	
-	primer_parametro:
-		pop ecx ;Desapilo el primer argumento
-		mov eax,ecx ;Asigno el primer argumento a eax
-		push eax
-		call abrir_archivo_entrada ;
+		pop ecx
+		mov DWORD[arch_entrada],ecx
+		call abrir_archivo_entrada
 		call leer_archivo
+		mov edi,0
 		call calcular_metricas
-		push eax
+		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
-
-	segundo_parametro:
-		pop ecx ;Desapilo el segundo argumento_
-		mov eax,ecx ;Asigno el segundo argumento a eax
+		pop ecx
+		mov DWORD[arch_salida],ecx
 		call abrir_archivo_salida
-		call escribir_metricas
-		push eax
-		call cerrar_archivo
-		jmp salgo_sin_errores
-	
+		jmp escribir_metricas
 	
 	mas_parametros:
 		mov eax,4 ;Servicio sys_write.
@@ -154,7 +146,7 @@ section .text
 	leer_consola:  
 		mov eax,3 ;Servicio sys_read.
 		mov ebx,0 ;entrada estandar.
-		mov edx,1000000 ;tamaño caracter.
+		mov edx,1000 ;tamaño caracter.
 		int 80h ;invocacion al servicio.
 		add ecx,eax
 		add esi,eax
@@ -171,19 +163,16 @@ section .text
 		cmp esi,0
 		inc ecx
 		jne escribir_temporal
+		ret
 		
 
 	leer_archivo:
 		mov eax,3 ;Servicio sys_read.
-		mov ebx,DWORD[arch_entrada] ;entrada estandar.
+		mov ebx,DWORD[arch_entrada] ;descriptor de archivo.
+		mov ecx,buffer
 		mov edx,1000000 ;tamaño caracter.
 		int 80h ;invocacion al servicio.
-		add ecx,eax
-		add esi,eax
-		cmp BYTE[buffer + esi - 2],2Dh
-		jne leer_archivo
-		mov ecx,buffer
-		mov edi,0
+		ret
 
 	calcular_metricas:	
 		
@@ -196,7 +185,7 @@ section .text
 		cmp BYTE[buffer+edi],03h ;Comparo el caracter con el numero 03( end of file en hexa)
 		jmp seguir
 		inc edi
-		call calcular_metricas
+		jmp calcular_metricas
 
 	mayor_A:
 		cmp BYTE[buffer+edi],5Ah ;Comparo el caracter con el numero 5A('Z' en hexa)
@@ -252,62 +241,88 @@ section .text
 	mayor_llave:
 		cmp BYTE[buffer+edi],7Eh ;Comparo el caracter con el numero 7Eh('~' en hexa)
 		jle separador ;Salta a sepador.
+
+	seguir:
+		ret	
 		
+	escribir_espacio:
+		mov eax,4 ;Servicio sys_write.
+		mov ecx,espacio ;mensaje a mostrar.
+		mov edx,largo_espacio ;largo del mensaje.
+		int 80h ;invocacion al servicio.
+		ret
 	
 	mostrar_metricas:
 		mov eax,4 ;Servicio sys_write.
 		mov ebx,1 ;salida estandar.
-		mov ecx,contador_letras ;mensaje a mostrar.
+		mov ecx,DWORD[contador_letras] ;mensaje a mostrar.
 		mov edx,32 ;largo del mensaje.
 		int 80h ;invocacion al servicio.
 		
-		mov eax,4 ;Servicio sys_write.
-		mov ebx,1 ;salida estandar.
-		mov ecx,contador_palabras ;mensaje a mostrar.
-		mov edx,32 ;largo del mensaje.
-		int 80h ;invocacion al servicio.
+		call escribir_espacio
 
 		mov eax,4 ;Servicio sys_write.
 		mov ebx,1 ;salida estandar.
-		mov ecx,contador_lineas ;mensaje a mostrar.
+		mov ecx,DWORD[contador_palabras] ;mensaje a mostrar.
 		mov edx,32 ;largo del mensaje.
 		int 80h ;invocacion al servicio.
 
+		call escribir_espacio
+
 		mov eax,4 ;Servicio sys_write.
 		mov ebx,1 ;salida estandar.
-		mov ecx,contador_parrafos ;mensaje a mostrar.
+		mov ecx,DWORD[contador_lineas] ;mensaje a mostrar.
 		mov edx,32 ;largo del mensaje.
 		int 80h ;invocacion al servicio.
-	
+
+		call escribir_espacio
+
+		mov eax,4 ;Servicio sys_write.
+		mov ebx,1 ;salida estandar.
+		mov ecx,DWORD[contador_parrafos] ;mensaje a mostrar.
+		mov edx,32 ;largo del mensaje.
+		int 80h ;invocacion al servicio.
+
+		call escribir_espacio
+		
+		jmp salgo_sin_errores
 	escribir_metricas:
 		mov eax,4 ;Servicio sys_write
-		pop eax
-		mov ebx,eax ;descriptor del archivo
-		mov ecx,[contador_letras] ;caracter a escribir
-		mov edx,32 ;tamaño del caracter.
-		int 80h;
-		push eax
-		mov eax,4 ;Servicio sys_write
-		pop eax
-		mov ebx,eax ;descriptor del archivo
-		mov ecx,[contador_palabras] ;caracter a escribir
-		mov edx,32 ;tamaño del caracter.
-		int 80h;
-		push eax
-		mov eax,4 ;Servicio sys_write
-		pop eax
-		mov ebx,eax ;descriptor del archivo
-		mov ecx,[contador_lineas] ;caracter a escribir
-		mov edx,32 ;tamaño del caracter.
-		int 80h;
-		push eax
-		mov eax,4 ;Servicio sys_write
-		pop eax
-		mov ebx,eax ;descriptor del archivo
-		mov ecx,[contador_parrafos] ;caracter a escribir
+		mov ebx,DWORD[arch_salida] ;descriptor del archivo
+		mov ecx,DWORD[contador_letras] ;caracter a escribir
 		mov edx,32 ;tamaño del caracter.
 		int 80h;
 		
+		call escribir_espacio
+
+		mov eax,4 ;Servicio sys_write
+		mov ebx,DWORD[arch_salida] ;descriptor del archivo
+		mov ecx,DWORD[contador_palabras] ;caracter a escribir
+		mov edx,32 ;tamaño del caracter.
+		int 80h;
+
+		call escribir_espacio
+		
+		mov eax,4 ;Servicio sys_write
+		mov ebx,DWORD[arch_salida] ;descriptor del archivo
+		mov ecx,DWORD[contador_lineas] ;caracter a escribir
+		mov edx,32 ;tamaño del caracter.
+		int 80h;
+
+		call escribir_espacio
+		
+		mov eax,4 ;Servicio sys_write
+		mov ebx,DWORD[arch_salida] ;descriptor del archivo
+		mov ecx,DWORD[contador_parrafos] ;caracter a escribir
+		mov edx,32 ;tamaño del caracter.
+		int 80h;
+
+		call escribir_espacio
+
+		mov ebx,DWORD[arch_salida]
+		call cerrar_archivo
+
+		jmp salgo_sin_errores
 	error_ingreso_invalido:
 		mov eax,4 ;Servicio sys_write
 		mov ebx,1 ;salida estandar
