@@ -55,7 +55,8 @@ section .text
 		mov DWORD[arch_entrada],eax
 		mov ecx,buffer
 		mov esi,0
-		call leer_consola ;Salta a leer_consola 
+		call leer_consola ;Salta a leer_consola
+		call escribir_temporal 
 		call leer_archivo ;Salta a leer_archivo
 		mov edi,0 
 		call calcular_metricas ;Salta a calcular_metricas
@@ -109,7 +110,7 @@ section .text
 		mov edi,0
 		call calcular_metricas
 		mov ebx,DWORD[arch_entrada]
-		cerrar_archivo
+		call cerrar_archivo
 	        jmp mostrar_metricas ;Salta a mostrar_metricas.
 
 	dos_parametros:
@@ -153,6 +154,7 @@ section .text
 		cmp BYTE[buffer + esi - 2],2Dh
 		jne leer_consola
 		mov ecx,buffer
+		ret
 		
 	escribir_temporal:
 		mov eax,4 ;Servicio sys_write
@@ -255,7 +257,7 @@ section .text
 	mostrar_metricas:
 		mov eax,4 ;Servicio sys_write.
 		mov ebx,1 ;salida estandar.
-		mov ecx,DWORD[contador_letras] ;mensaje a mostrar.
+		mov ecx,[contador_letras] ;mensaje a mostrar.
 		mov edx,32 ;largo del mensaje.
 		int 80h ;invocacion al servicio.
 		
