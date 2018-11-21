@@ -70,6 +70,7 @@ section .text
 		mov edi,0
 		call leer_consola ;Salta a leer_consola
 		mov ecx,0
+		mov esi,0
 		call calcular_metricas
 		call cerrar_archivo
 		mov ebx,1 
@@ -126,6 +127,7 @@ section .text
 		mov edi,0
 		call leer_archivo 
 		mov ecx,0
+		mov esi,0
 		call calcular_metricas
 		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
@@ -139,6 +141,7 @@ section .text
 		call abrir_archivo_entrada
 		call leer_archivo
 		mov edi,0
+		mov esi,0
 		call calcular_metricas
 		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
@@ -197,16 +200,16 @@ section .text
 		ret
 
 	calcular_metricas:	
-		cmp ecx,edi ;Comparo el caracter con el numero 03( end of file en hexa)
+		cmp ecx,edi 
 		je seguir
-		cmp BYTE[buffer+ecx],41h ;Comparo el caracter con el numero 41('A' en hexa)
-		jge mayor_A ;Salto a mayor_A
+		inc ecx
+		
 		cmp BYTE[buffer+ecx],0Ah ;Comparo el caracter con el numero 0A(salto de linea en hexa)
 		je salto_de_linea ;Salto a salto_de_linea
 		cmp BYTE[buffer+ecx],20h ;Comparo el caracter con el numero 20(' ' en hexa)
 		jge mayor_espacio ;Salto a mayor_espacio
 		
-		inc edi
+		
 		jmp calcular_metricas
 
 	mayor_A:
@@ -214,11 +217,13 @@ section .text
 		jle es_letra ;Salto a es_letra
 		cmp BYTE[buffer+ecx],61h ;Comparo el caracter con el numero 61('a' en hexa)
 		jge mayor_a ;Salto a mayor_a
+		call separador ;Salto a separador
 		jmp calcular_metricas
 
 	mayor_a:
 		cmp BYTE[buffer+ecx],7Ah ;Comparo el caracter con el numero 7A('z' en hexa)
 		jle es_letra ;Salto a es_letra
+		call separador ;Salto a separador
 		jmp calcular_metricas
 		
 
@@ -235,42 +240,34 @@ section .text
 		
 
 	contar_palabra:
+		mov esi,1
+		mov DWORD[ultimo],0 ;Muevo el valor 0 a ultimo, porque lei un separador.
 		inc DWORD[contador_palabras] ;Incremento contador_palabra
-		jmp calcular_metricas
+		ret
 
 	salto_de_linea:
 		inc DWORD[contador_lineas] ;Incremento contador_linea
 		call separador ;Salto a separador
 		call parrafo ;Salto a parrafo
 		mov DWORD[ultimo],0 ;Muevo el valor 0 a ultimo, porque lei un salto de linea.
+		mov esi,0
 		jmp calcular_metricas
 	parrafo:
-		cmp DWORD[ultimo],1 ;Comparo a ultimo con el numero 1
+		cmp esi,1 ;Comparo a ultimo con el numero 1
 		je contar_parrafos ;Salto a contar_parrafo
 		ret
 
 	contar_parrafos:
 		inc DWORD[contador_parrafos] ;Incremento a contador_parrafo
-		jmp calcular_metricas
+		ret
 
 	mayor_espacio:
-		cmp BYTE[buffer+ecx],40h ;Comparo el caracter con el numero 40('@' en hexa)
-		jle separador ;Salta a separador.
-		cmp BYTE[buffer+ecx],5Bh ;Comparo el caracter con el numero 5B('[' en hexa)
-		jge mayor_corchete ;Salto a mayor_corchete
+		cmp BYTE[buffer+ecx],41h ;Comparo el caracter con el numero 41('A' en hexa)
+		jge mayor_A ;Salto a mayor_A
+		call separador ;Salta a separador.
 		jmp calcular_metricas
 
-	mayor_corchete:
-		cmp BYTE[buffer+ecx],60h ;Comparo el caracter con el numero 60h('-' en hexa)
-		jle separador ;Salta a separador.
-		cmp BYTE[buffer+ecx],7Bh ;Comparo el caracter con el numero 7Bh('{' en hexa)
-		jge mayor_llave ;Salto a mayor llave
-		jmp calcular_metricas
-
-	mayor_llave:
-		cmp BYTE[buffer+ecx],7Eh ;Comparo el caracter con el numero 7Eh('~' en hexa)
-		jle separador ;Salta a sepador.
-		jmp calcular_metricas
+	
 
 	seguir:
 		ret	
