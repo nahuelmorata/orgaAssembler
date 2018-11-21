@@ -68,7 +68,12 @@ section .text
 		mov ecx,buffer
 		mov esi,0
 		mov edi,0
-		jmp leer_consola ;Salta a leer_consola
+		call leer_consola ;Salta a leer_consola
+		mov ecx,0
+		call calcular_metricas
+		call cerrar_archivo
+		mov ebx,1 
+		jmp mostrar_metricas
 
 	abrir_archivo_entrada:
 		mov eax,5 ;servicio sys_open
@@ -118,11 +123,13 @@ section .text
 		;Si no empieza con guion, asume archivo entrada. Salta a calcular_metricas
 		mov DWORD[arch_entrada],ecx
 		call abrir_archivo_entrada
-		call leer_archivo 
 		mov edi,0
+		call leer_archivo 
+		mov ecx,0
 		call calcular_metricas
 		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
+		mov ebx,1
 	        jmp mostrar_metricas ;Salta a mostrar_metricas.
 
 	dos_parametros:
@@ -138,7 +145,8 @@ section .text
 		pop ecx
 		mov DWORD[arch_salida],ecx
 		call abrir_archivo_salida
-		jmp escribir_metricas
+		mov ebx,DWORD[arch_salida]
+		jmp mostrar_metricas
 	
 	mas_parametros:
 		mov eax,4 ;Servicio sys_write.
@@ -162,6 +170,7 @@ section .text
 		mov edx,1000 ;tamaño caracter.
 		int 80h ;invocacion al servicio.
 		add ecx,eax
+		add edi,eax
 		add esi,eax
 		cmp BYTE[buffer + esi - 2],2Dh
 		jne leer_consola
@@ -176,9 +185,7 @@ section .text
 		inc ecx
 		cmp esi,0
 		jne escribir_temporal
-		call calcular_metricas
-		call cerrar_archivo
-		jmp mostrar_metricas
+		ret
 
 	leer_archivo:
 		mov eax,3 ;Servicio sys_read.
@@ -186,36 +193,40 @@ section .text
 		mov ecx,buffer
 		mov edx,1048576 ;tamaño caracter.
 		int 80h ;invocacion al servicio.
+		add edi,eax
 		ret
 
 	calcular_metricas:	
-		cmp BYTE[buffer+edi],03h ;Comparo el caracter con el numero 03( end of file en hexa)
+		cmp ecx,edi ;Comparo el caracter con el numero 03( end of file en hexa)
 		je seguir
-		cmp BYTE[buffer+edi],41h ;Comparo el caracter con el numero 41('A' en hexa)
+		cmp BYTE[buffer+ecx],41h ;Comparo el caracter con el numero 41('A' en hexa)
 		jge mayor_A ;Salto a mayor_A
-		cmp BYTE[buffer+edi],0Ah ;Comparo el caracter con el numero 0A(salto de linea en hexa)
+		cmp BYTE[buffer+ecx],0Ah ;Comparo el caracter con el numero 0A(salto de linea en hexa)
 		je salto_de_linea ;Salto a salto_de_linea
-		cmp BYTE[buffer+edi],20h ;Comparo el caracter con el numero 20(' ' en hexa)
+		cmp BYTE[buffer+ecx],20h ;Comparo el caracter con el numero 20(' ' en hexa)
 		jge mayor_espacio ;Salto a mayor_espacio
 		
 		inc edi
 		jmp calcular_metricas
 
 	mayor_A:
-		cmp BYTE[buffer+edi],5Ah ;Comparo el caracter con el numero 5A('Z' en hexa)
+		cmp BYTE[buffer+ecx],5Ah ;Comparo el caracter con el numero 5A('Z' en hexa)
 		jle es_letra ;Salto a es_letra
-		cmp BYTE[buffer+edi],61h ;Comparo el caracter con el numero 61('a' en hexa)
+		cmp BYTE[buffer+ecx],61h ;Comparo el caracter con el numero 61('a' en hexa)
 		jge mayor_a ;Salto a mayor_a
+		jmp calcular_metricas
 
 	mayor_a:
-		cmp BYTE[buffer+edi],7Ah ;Comparo el caracter con el numero 7A('z' en hexa)
+		cmp BYTE[buffer+ecx],7Ah ;Comparo el caracter con el numero 7A('z' en hexa)
 		jle es_letra ;Salto a es_letra
+		jmp calcular_metricas
 		
 
 	es_letra:
 		inc DWORD[contador_letras] ;Incremento contador_letra.
 		mov DWORD[ultimo],1 ;Muevo el valor 1 a ultimo, porque lei letra
 		jmp calcular_metricas
+
 	separador:
 		cmp DWORD[ultimo],1 ;Comparo a ultimo con el numero 1
 		je contar_palabra ;Salto a contar_palabra
@@ -243,19 +254,21 @@ section .text
 		jmp calcular_metricas
 
 	mayor_espacio:
-		cmp BYTE[buffer+edi],40h ;Comparo el caracter con el numero 40('@' en hexa)
+		cmp BYTE[buffer+ecx],40h ;Comparo el caracter con el numero 40('@' en hexa)
 		jle separador ;Salta a separador.
-		cmp BYTE[buffer+edi],5Bh ;Comparo el caracter con el numero 5B('[' en hexa)
+		cmp BYTE[buffer+ecx],5Bh ;Comparo el caracter con el numero 5B('[' en hexa)
 		jge mayor_corchete ;Salto a mayor_corchete
+		jmp calcular_metricas
 
 	mayor_corchete:
-		cmp BYTE[buffer+edi],60h ;Comparo el caracter con el numero 60h('-' en hexa)
+		cmp BYTE[buffer+ecx],60h ;Comparo el caracter con el numero 60h('-' en hexa)
 		jle separador ;Salta a separador.
-		cmp BYTE[buffer+edi],7Bh ;Comparo el caracter con el numero 7Bh('{' en hexa)
+		cmp BYTE[buffer+ecx],7Bh ;Comparo el caracter con el numero 7Bh('{' en hexa)
 		jge mayor_llave ;Salto a mayor llave
+		jmp calcular_metricas
 
 	mayor_llave:
-		cmp BYTE[buffer+edi],7Eh ;Comparo el caracter con el numero 7Eh('~' en hexa)
+		cmp BYTE[buffer+ecx],7Eh ;Comparo el caracter con el numero 7Eh('~' en hexa)
 		jle separador ;Salta a sepador.
 		jmp calcular_metricas
 
@@ -270,21 +283,21 @@ section .text
 		ret
 	
 	int_to_string:
-		xor EBX,EBX
+		xor esi,esi
 	.push_chars:
 		xor EDX, EDX
 		mov ECX, 10
 		div ECX
 		add EDX, 0x30
 		push EDX
-		inc EBX
+		inc esi
 		test EAX, EAX
 		jnz .push_chars
 	.pop_chars:
 		pop EAX
 		stosb
-		dec EBX
-		cmp EBX, 0
+		dec esi
+		cmp esi, 0
 		jg .pop_chars
 		mov EAX, 0x0a
 		stosb
@@ -296,7 +309,7 @@ section .text
 		call int_to_string
 
 		mov eax,4 ;Servicio sys_write.
-		mov ebx,1 ;salida estandar.
+		
 		mov ecx,contador_letras_string ;mensaje a mostrar.
 		mov edx,16 ;largo del mensaje.
 		int 80h ;invocacion al servicio.
@@ -308,7 +321,7 @@ section .text
 		call int_to_string
 
 		mov eax,4 ;Servicio sys_write.
-		mov ebx,1 ;salida estandar.
+		
 		mov ecx,contador_palabras_string ;mensaje a mostrar.
 		mov edx,16 ;largo del mensaje.
 		int 80h ;invocacion al servicio.
@@ -320,7 +333,7 @@ section .text
 		call int_to_string
 	
 		mov eax,4 ;Servicio sys_write.
-		mov ebx,1 ;salida estandar.
+		
 		mov ecx,contador_lineas_string ;mensaje a mostrar.
 		mov edx,16 ;largo del mensaje.
 		int 80h ;invocacion al servicio.
@@ -332,7 +345,7 @@ section .text
 		call int_to_string
 
 		mov eax,4 ;Servicio sys_write.
-		mov ebx,1 ;salida estandar.
+		
 		mov ecx,contador_parrafos_string ;mensaje a mostrar.
 		mov edx,16 ;largo del mensaje.
 		int 80h ;invocacion al servicio.
@@ -340,43 +353,8 @@ section .text
 		call escribir_espacio
 		
 		jmp salgo_sin_errores
-	escribir_metricas:
-		mov eax,4 ;Servicio sys_write
-		mov ebx,DWORD[arch_salida] ;descriptor del archivo
-		mov ecx,[contador_letras] ;caracter a escribir
-		mov edx,32 ;tamaño del caracter.
-		int 80h;
-		
-		call escribir_espacio
 
-		mov eax,4 ;Servicio sys_write
-		mov ebx,DWORD[arch_salida] ;descriptor del archivo
-		mov ecx,[contador_palabras] ;caracter a escribir
-		mov edx,32 ;tamaño del caracter.
-		int 80h;
-
-		call escribir_espacio
-		
-		mov eax,4 ;Servicio sys_write
-		mov ebx,DWORD[arch_salida] ;descriptor del archivo
-		mov ecx,[contador_lineas] ;caracter a escribir
-		mov edx,32 ;tamaño del caracter.
-		int 80h;
-
-		call escribir_espacio
-		
-		mov eax,4 ;Servicio sys_write
-		mov ebx,DWORD[arch_salida] ;descriptor del archivo
-		mov ecx,[contador_parrafos] ;caracter a escribir
-		mov edx,32 ;tamaño del caracter.
-		int 80h;
-
-		call escribir_espacio
-
-		mov ebx,DWORD[arch_salida]
-		call cerrar_archivo
-
-		jmp salgo_sin_errores
+	
 	error_ingreso_invalido:
 		mov eax,4 ;Servicio sys_write
 		mov ebx,1 ;salida estandar
