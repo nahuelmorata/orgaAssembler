@@ -72,11 +72,12 @@ section .text
 		mov ecx,0
 		mov esi,0
 		call calcular_metricas
+		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
 		mov ebx,1 
 		jmp mostrar_metricas
 
-	abrir_archivo_entrada:
+	abrir_archivo:
 		mov eax,5 ;servicio sys_open
 		mov ebx,ecx ;Nombre del archivo
 		mov ecx, 0 ;0 flags
@@ -86,19 +87,6 @@ section .text
 		add eax,2
 		cmp eax,0 ;Comparo el valor de eax con 0
 		je error_abrir_entrada ;Si el valor de eax es menor a 0  salto a error_abrir
-		sub eax,2
-		ret
-
-	abrir_archivo_salida:
-		mov eax,5 ;servicio sys_open
-		mov ebx,ecx ;Nombre del archivo
-		mov ecx, 0 ;0 flags
-		mov edx,0777 ;Permiso de lectura, escritura y ejecucion para todos.
-		int 80h ;invocacion del servicio
-
-		add eax,2
-		cmp eax,0 ;Comparo el valor de eax con 0
-		je error_abrir_salida ;Si el valor de eax es menor a 0 salto a error_abrir
 		sub eax,2
 		ret
 
@@ -122,7 +110,7 @@ section .text
 		
 	un_parametro_archivo:
 		;Si no empieza con guion, asume archivo entrada. Salta a calcular_m
-		call abrir_archivo_entrada
+		call abrir_archivo
 		mov DWORD[arch_entrada],eax
 		mov edi,0
 		call leer_archivo 
@@ -137,16 +125,17 @@ section .text
 	dos_parametros:
 		pop ebx
 		pop ecx
-		call abrir_archivo_entrada
+		call abrir_archivo
 		mov DWORD[arch_entrada],eax
-		call leer_archivo
 		mov edi,0
+		call leer_archivo
+		mov ecx,0
 		mov esi,0
 		call calcular_metricas
 		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
 		pop ecx
-		call abrir_archivo_salida
+		call abrir_archivo
 		mov DWORD[arch_salida],eax
 		mov ebx,DWORD[arch_salida]
 		jmp mostrar_metricas
