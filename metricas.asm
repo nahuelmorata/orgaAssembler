@@ -1,5 +1,4 @@
 section .data
-	
 
 	temporal db "temporal.txt",0
 
@@ -34,12 +33,12 @@ section .bss
 	contador_parrafos resb 16 ;Contador de parrafos
 	ultimo resb 16 ;Ultimo es 0 si lo ultimo que lei fue algo diferente a una letra
 		    ;y 1 si lo ultimo fue una letra.
-	entro resb 16
+	
 	contador_letras_string resb 16 ;Contador de letras
 	contador_palabras_string resb 16 ;Contador de palabras
 	contador_lineas_string resb 16 ;Contador de lineas
 	contador_parrafos_string resb 16 ;Contador de parrafos
-	entro_string resb 16
+	
 	
 section .text
 	global _start; etiqueta global que marca el comienzo del programa
@@ -50,7 +49,6 @@ section .text
 		mov dword[contador_lineas],0
 		mov dword[contador_parrafos],0
 		mov dword[ultimo],0
-		mov dword[entro],0
 
 	leer_parametros: 
 		pop eax ;Saco primer valor de la pila, contiene ARGC.
@@ -75,7 +73,6 @@ section .text
 		call leer_consola ;Salta a leer_consola
 		mov ecx,0
 		mov esi,0
-		add DWORD[entro],edi
 		call calcular_metricas
 		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
@@ -92,6 +89,19 @@ section .text
 		add eax,2
 		cmp eax,0 ;Comparo el valor de eax con 0
 		je error_abrir_entrada ;Si el valor de eax es menor a 0  salto a error_abrir
+		sub eax,2
+		ret
+
+	abrir_archivo_salida:
+		mov eax,5 ;servicio sys_open
+		mov ebx,ecx ;Nombre del archivo
+		mov ecx, 0 ;0 flags
+		mov edx,0777 ;Permiso de lectura, escritura y ejecucion para todos.
+		int 80h ;invocacion del servicio
+		
+		add eax,2
+		cmp eax,0 ;Comparo el valor de eax con 0
+		je error_abrir_salida ;Si el valor de eax es menor a 0  salto a error_abrir
 		sub eax,2
 		ret
 
@@ -140,7 +150,7 @@ section .text
 		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
 		pop ecx
-		call abrir_archivo
+		call abrir_archivo_salida
 		mov DWORD[arch_salida],eax
 		mov ebx,DWORD[arch_salida]
 		jmp mostrar_metricas
@@ -305,18 +315,6 @@ section .text
 		ret
 
 	mostrar_metricas:
-		mov eax, DWORD[entro]
-		mov edi, entro_string
-		call int_to_string
-
-		mov eax,4 ;Servicio sys_write.
-		
-		mov ecx,entro_string ;mensaje a mostrar.
-		mov edx,16 ;largo del mensaje.
-		int 80h ;invocacion al servicio.
-		
-		call escribir_espacio
-
 		mov eax, DWORD[contador_letras]
 		mov edi, contador_letras_string
 		call int_to_string
