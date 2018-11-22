@@ -22,7 +22,7 @@ section .data
 	largo_espacio equ $ -espacio
 
 section .bss
-	buffer resb 1048576 ;Reserva 1MB 
+	buffer resb 100000 ;Reserva 1MB 
 	arch_entrada resb 1
 	arch_salida resb 1
 
@@ -78,7 +78,7 @@ section .text
 
 	abrir_archivo_entrada:
 		mov eax,5 ;servicio sys_open
-		mov ebx,DWORD[arch_entrada] ;Nombre del archivo
+		mov ebx,ecx ;Nombre del archivo
 		mov ecx, 0 ;0 flags
 		mov edx,0777 ;Permiso de lectura, escritura y ejecucion para todos.
 		int 80h ;invocacion del servicio
@@ -91,7 +91,7 @@ section .text
 
 	abrir_archivo_salida:
 		mov eax,5 ;servicio sys_open
-		mov ebx,DWORD[arch_salida] ;Nombre del archivo
+		mov ebx,ecx ;Nombre del archivo
 		mov ecx, 0 ;0 flags
 		mov edx,0777 ;Permiso de lectura, escritura y ejecucion para todos.
 		int 80h ;invocacion del servicio
@@ -121,9 +121,9 @@ section .text
 		jmp mostrar_ayuda ;Salta a mostrar_ayuda
 		
 	un_parametro_archivo:
-		;Si no empieza con guion, asume archivo entrada. Salta a calcular_metricas
-		mov DWORD[arch_entrada],ecx
+		;Si no empieza con guion, asume archivo entrada. Salta a calcular_m
 		call abrir_archivo_entrada
+		mov DWORD[arch_entrada],eax
 		mov edi,0
 		call leer_archivo 
 		mov ecx,0
@@ -137,8 +137,8 @@ section .text
 	dos_parametros:
 		pop ebx
 		pop ecx
-		mov DWORD[arch_entrada],ecx
 		call abrir_archivo_entrada
+		mov DWORD[arch_entrada],eax
 		call leer_archivo
 		mov edi,0
 		mov esi,0
@@ -146,8 +146,8 @@ section .text
 		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
 		pop ecx
-		mov DWORD[arch_salida],ecx
 		call abrir_archivo_salida
+		mov DWORD[arch_salida],eax
 		mov ebx,DWORD[arch_salida]
 		jmp mostrar_metricas
 	
@@ -194,34 +194,37 @@ section .text
 		mov eax,3 ;Servicio sys_read.
 		mov ebx,DWORD[arch_entrada] ;descriptor de archivo.
 		mov ecx,buffer
-		mov edx,1048576 ;tamaño caracter.
+		mov edx,1000000 ;tamaño caracter.
 		int 80h ;invocacion al servicio.
+		cmp eax,0
+		je error_ingreso_invalido
 		add edi,eax
 		ret
 
 	calcular_metricas:	
 		cmp ecx,edi 
-		je seguir
+		je fin_archivo
+		mov al,BYTE[buffer+ecx]
 		inc ecx
 		
-		cmp BYTE[buffer+ecx],0Ah ;Comparo el caracter con el numero 0A(salto de linea en hexa)
+		cmp al,0Ah ;Comparo el caracter con el numero 0A(salto de linea en hexa)
 		je salto_de_linea ;Salto a salto_de_linea
-		cmp BYTE[buffer+ecx],20h ;Comparo el caracter con el numero 20(' ' en hexa)
+		cmp al,20h ;Comparo el caracter con el numero 20(' ' en hexa)
 		jge mayor_espacio ;Salto a mayor_espacio
 		
 		
 		jmp calcular_metricas
 
 	mayor_A:
-		cmp BYTE[buffer+ecx],5Ah ;Comparo el caracter con el numero 5A('Z' en hexa)
+		cmp al,5Ah ;Comparo el caracter con el numero 5A('Z' en hexa)
 		jle es_letra ;Salto a es_letra
-		cmp BYTE[buffer+ecx],61h ;Comparo el caracter con el numero 61('a' en hexa)
+		cmp al,61h ;Comparo el caracter con el numero 61('a' en hexa)
 		jge mayor_a ;Salto a mayor_a
 		call separador ;Salto a separador
 		jmp calcular_metricas
 
 	mayor_a:
-		cmp BYTE[buffer+ecx],7Ah ;Comparo el caracter con el numero 7A('z' en hexa)
+		cmp al,7Ah ;Comparo el caracter con el numero 7A('z' en hexa)
 		jle es_letra ;Salto a es_letra
 		call separador ;Salto a separador
 		jmp calcular_metricas
@@ -262,12 +265,17 @@ section .text
 		ret
 
 	mayor_espacio:
-		cmp BYTE[buffer+ecx],41h ;Comparo el caracter con el numero 41('A' en hexa)
+		cmp al,41h ;Comparo el caracter con el numero 41('A' en hexa)
 		jge mayor_A ;Salto a mayor_A
 		call separador ;Salta a separador.
 		jmp calcular_metricas
 
-	
+	fin_archivo:
+		inc DWORD[contador_lineas]
+		cmp esi, 1
+		jne seguir
+		inc DWORD[contador_parrafos]
+		
 
 	seguir:
 		ret	
