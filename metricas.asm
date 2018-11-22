@@ -21,6 +21,8 @@ section .data
 	espacio db " ",0
 	largo_espacio equ $ -espacio
 
+	
+
 section .bss
 	buffer resb 100000 ;Reserva 1MB 
 	arch_entrada resb 1
@@ -32,11 +34,12 @@ section .bss
 	contador_parrafos resb 16 ;Contador de parrafos
 	ultimo resb 16 ;Ultimo es 0 si lo ultimo que lei fue algo diferente a una letra
 		    ;y 1 si lo ultimo fue una letra.
-
+	entro resb 16
 	contador_letras_string resb 16 ;Contador de letras
 	contador_palabras_string resb 16 ;Contador de palabras
 	contador_lineas_string resb 16 ;Contador de lineas
 	contador_parrafos_string resb 16 ;Contador de parrafos
+	entro_string resb 16
 	
 section .text
 	global _start; etiqueta global que marca el comienzo del programa
@@ -47,6 +50,7 @@ section .text
 		mov dword[contador_lineas],0
 		mov dword[contador_parrafos],0
 		mov dword[ultimo],0
+		mov dword[entro],0
 
 	leer_parametros: 
 		pop eax ;Saco primer valor de la pila, contiene ARGC.
@@ -71,6 +75,7 @@ section .text
 		call leer_consola ;Salta a leer_consola
 		mov ecx,0
 		mov esi,0
+		add DWORD[entro],edi
 		call calcular_metricas
 		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
@@ -166,6 +171,7 @@ section .text
 		add esi,eax
 		cmp BYTE[buffer + esi - 2],2Dh
 		jne leer_consola
+		
 		mov ecx,buffer
 		
 	escribir_temporal:
@@ -190,12 +196,13 @@ section .text
 		add edi,eax
 		ret
 
-	calcular_metricas:	
+	calcular_metricas:
+		
+		xor eax,eax
 		cmp ecx,edi 
 		je fin_archivo
 		mov al,BYTE[buffer+ecx]
 		inc ecx
-		
 		cmp al,0Ah ;Comparo el caracter con el numero 0A(salto de linea en hexa)
 		je salto_de_linea ;Salto a salto_de_linea
 		cmp al,20h ;Comparo el caracter con el numero 20(' ' en hexa)
@@ -298,6 +305,18 @@ section .text
 		ret
 
 	mostrar_metricas:
+		mov eax, DWORD[entro]
+		mov edi, entro_string
+		call int_to_string
+
+		mov eax,4 ;Servicio sys_write.
+		
+		mov ecx,entro_string ;mensaje a mostrar.
+		mov edx,16 ;largo del mensaje.
+		int 80h ;invocacion al servicio.
+		
+		call escribir_espacio
+
 		mov eax, DWORD[contador_letras]
 		mov edi, contador_letras_string
 		call int_to_string
@@ -309,7 +328,6 @@ section .text
 		int 80h ;invocacion al servicio.
 		
 		call escribir_espacio
-	
 		mov eax, DWORD[contador_palabras]
 		mov edi, contador_palabras_string
 		call int_to_string
@@ -345,10 +363,15 @@ section .text
 		int 80h ;invocacion al servicio.
 
 		call escribir_espacio
-		
+		cmp ebx,[arch_salida]
+		je cerrar_salir
+
 		jmp salgo_sin_errores
 
-	
+	cerrar_salir:
+		call cerrar_archivo
+		jmp salgo_sin_errores
+
 	error_ingreso_invalido:
 		mov eax,4 ;Servicio sys_write
 		mov ebx,1 ;salida estandar
