@@ -17,27 +17,27 @@ section .data
 	ayuda db "Ayuda.",10
 	largo_ayuda equ $ - ayuda 
 
-	espacio db " ",0
+	espacio db " ",10
 	largo_espacio equ $ -espacio
 
 	
 
 section .bss
 	buffer resb 100000 ;Reserva 1MB 
-	arch_entrada resb 1
-	arch_salida resb 1
+	arch_entrada resd 1
+	arch_salida resd 1
 
-	contador_letras resb 16 ;Contador de letras
-	contador_palabras resb 16 ;Contador de palabras
-	contador_lineas resb 16 ;Contador de lineas
-	contador_parrafos resb 16 ;Contador de parrafos
-	ultimo resb 16 ;Ultimo es 0 si lo ultimo que lei fue algo diferente a una letra
+	contador_letras resd 1 ;Contador de letras
+	contador_palabras resd 1 ;Contador de palabras
+	contador_lineas resd 1 ;Contador de lineas
+	contador_parrafos resd 1 ;Contador de parrafos
+	ultimo resd 1 ;Ultimo es 0 si lo ultimo que lei fue algo diferente a una letra
 		    ;y 1 si lo ultimo fue una letra.
 	
-	contador_letras_string resb 16 ;Contador de letras
-	contador_palabras_string resb 16 ;Contador de palabras
-	contador_lineas_string resb 16 ;Contador de lineas
-	contador_parrafos_string resb 16 ;Contador de parrafos
+	contador_letras_string resd 1 ;Contador de letras
+	contador_palabras_string resd 1 ;Contador de palabras
+	contador_lineas_string resd 1 ;Contador de lineas
+	contador_parrafos_string resd 1;Contador de parrafos
 	
 	
 section .text
@@ -73,10 +73,12 @@ section .text
 		call leer_consola ;Salta a leer_consola
 		mov ecx,0
 		mov esi,0
+		xor eax,eax
 		call calcular_metricas
 		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
 		mov ebx,1 
+		push ebx
 		jmp mostrar_metricas
 
 	abrir_archivo:
@@ -95,7 +97,7 @@ section .text
 	abrir_archivo_salida:
 		mov eax,5 ;servicio sys_open
 		mov ebx,ecx ;Nombre del archivo
-		mov ecx, 0 ;0 flags
+		mov ecx, 1 ;0 flags
 		mov edx,0777 ;Permiso de lectura, escritura y ejecucion para todos.
 		int 80h ;invocacion del servicio
 		
@@ -131,10 +133,12 @@ section .text
 		call leer_archivo 
 		mov ecx,0
 		mov esi,0
+		xor eax,eax
 		call calcular_metricas
 		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
 		mov ebx,1
+		push ebx
 	        jmp mostrar_metricas ;Salta a mostrar_metricas.
 
 	dos_parametros:
@@ -146,6 +150,7 @@ section .text
 		call leer_archivo
 		mov ecx,0
 		mov esi,0
+		xor eax,eax
 		call calcular_metricas
 		mov ebx,DWORD[arch_entrada]
 		call cerrar_archivo
@@ -153,6 +158,7 @@ section .text
 		call abrir_archivo_salida
 		mov DWORD[arch_salida],eax
 		mov ebx,DWORD[arch_salida]
+		push ebx
 		jmp mostrar_metricas
 	
 	mas_parametros:
@@ -207,8 +213,6 @@ section .text
 		ret
 
 	calcular_metricas:
-		
-		xor eax,eax
 		cmp ecx,edi 
 		je fin_archivo
 		mov al,BYTE[buffer+ecx]
@@ -294,73 +298,80 @@ section .text
 		ret
 	
 	int_to_string:
-		xor esi,esi
+		xor ebx,ebx
 	.push_chars:
 		xor EDX, EDX
 		mov ECX, 10
 		div ECX
 		add EDX, 0x30
 		push EDX
-		inc esi
+		inc ebx
 		test EAX, EAX
 		jnz .push_chars
 	.pop_chars:
 		pop EAX
+		inc esi
 		stosb
-		dec esi
-		cmp esi, 0
+		dec ebx
+		cmp ebx, 0
 		jg .pop_chars
 		mov EAX, 0x0a
 		stosb
 		ret
 
 	mostrar_metricas:
+
 		mov eax, DWORD[contador_letras]
 		mov edi, contador_letras_string
+		mov esi,0
 		call int_to_string
-
+		pop ebx
 		mov eax,4 ;Servicio sys_write.
-		
 		mov ecx,contador_letras_string ;mensaje a mostrar.
-		mov edx,16 ;largo del mensaje.
+		mov edx,esi ;largo del mensaje.
 		int 80h ;invocacion al servicio.
 		
 		call escribir_espacio
+		push ebx
 		mov eax, DWORD[contador_palabras]
 		mov edi, contador_palabras_string
+		mov esi,0
 		call int_to_string
 
 		mov eax,4 ;Servicio sys_write.
-		
+		pop ebx
 		mov ecx,contador_palabras_string ;mensaje a mostrar.
-		mov edx,16 ;largo del mensaje.
+		mov edx,esi ;largo del mensaje.
 		int 80h ;invocacion al servicio.
 
 		call escribir_espacio
-		
+		push ebx
 		mov eax, DWORD[contador_lineas]
 		mov edi, contador_lineas_string
+		mov esi,0
 		call int_to_string
 	
 		mov eax,4 ;Servicio sys_write.
-		
+		pop ebx
 		mov ecx,contador_lineas_string ;mensaje a mostrar.
-		mov edx,16 ;largo del mensaje.
+		mov edx,esi ;largo del mensaje.
 		int 80h ;invocacion al servicio.
 
 		call escribir_espacio
-
+		push ebx
 		mov eax, DWORD[contador_parrafos]
 		mov edi, contador_parrafos_string
+		mov esi,0
 		call int_to_string
 
 		mov eax,4 ;Servicio sys_write.
-		
+		pop ebx
 		mov ecx,contador_parrafos_string ;mensaje a mostrar.
-		mov edx,16 ;largo del mensaje.
+		mov edx,esi ;largo del mensaje.
 		int 80h ;invocacion al servicio.
 
 		call escribir_espacio
+
 		cmp ebx,[arch_salida]
 		je cerrar_salir
 
