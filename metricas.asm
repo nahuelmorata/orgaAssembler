@@ -69,9 +69,8 @@ section .text
 		mov DWORD[arch_entrada],eax
 		mov ecx,buffer
 		mov esi,0
-		mov edi,0
 		call leer_consola ;Salta a leer_consola
-		mov ecx,0
+		mov edi,0
 		mov esi,0
 		xor eax,eax
 		call calcular_metricas
@@ -129,9 +128,8 @@ section .text
 		;Si no empieza con guion, asume archivo entrada. Salta a calcular_m
 		call abrir_archivo
 		mov DWORD[arch_entrada],eax
-		mov edi,0
 		call leer_archivo 
-		mov ecx,0
+		mov edi,0
 		mov esi,0
 		xor eax,eax
 		call calcular_metricas
@@ -146,9 +144,8 @@ section .text
 		pop ecx
 		call abrir_archivo
 		mov DWORD[arch_entrada],eax
-		mov edi,0
 		call leer_archivo
-		mov ecx,0
+		mov edi,0
 		mov esi,0
 		xor eax,eax
 		call calcular_metricas
@@ -183,13 +180,10 @@ section .text
 		mov edx,1000 ;tamaño caracter.
 		int 80h ;invocacion al servicio.
 		add ecx,eax
-		add edi,eax
 		add esi,eax
-		cmp BYTE[buffer + esi - 2],2Dh
-		jne leer_consola
-		mov dword[buffer + esi - 2],03
-		mov dword[buffer + esi - 1],0
-		mov dword[buffer + esi],0
+		cmp eax,0
+		jg leer_consola
+		mov dword[buffer + esi -1],0
 		mov ecx,buffer
 		
 	escribir_temporal:
@@ -211,13 +205,12 @@ section .text
 		int 80h ;invocacion al servicio.
 		cmp eax,0
 		je error_ingreso_invalido
-		add edi,eax
 		ret
 
 	calcular_metricas:
 		
-		mov al,BYTE[buffer+ecx]
-		inc ecx
+		mov al,BYTE[buffer+edi]
+		inc edi
 		cmp al,0 
 		je fin_archivo
 		cmp al,10 ;Comparo el caracter con el numero 0A(salto de linea en hexa)
