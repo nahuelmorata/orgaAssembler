@@ -1,27 +1,50 @@
+;----------------------------------------------------------
+;Proyecto n°2 de Organizacion de computadoras 2018.
+;Comision n°5: Parra, Nadina Guadalupe. Morata, Nahuel
+;----------------------------------------------------------
+
 section .data
 
 	temporal db "temporal.txt",0 ;Reserva memoria para la cadena de caracteres que representa el archivo temporal.
 
-	error_archivo_entrada db "Error al abrir archivo de entrada.",10 ;Reseva memoria para la cadena de caracteres 									;que representa el error al abrir el archivo entrada.
+	error_archivo_entrada db "Error al abrir archivo de entrada.",10 ;Reseva memoria para la cadena de caracteres
+									;que representa el error al abrir el archivo entrada.
 	largo_error_archivo_entrada equ $ - error_archivo_entrada
 
-	error_archivo_salida db "Error al abrir archivo de salida.",10 ;Reseva memoria para la cadena de caracteres 									;que representa el error al abrir el archivo salida.
+	error_archivo_salida db "Error al abrir archivo de salida.",10 ;Reseva memoria para la cadena de caracteres						
+									;que representa el error al abrir el archivo salida.
 	largo_error_archivo_salida equ $ - error_archivo_salida
 	
-	error_mas_parametros db "Se ingresaron mas parametros.",10 ;Reseva memoria para la cadena de caracteres 								;que representa el error al ingresar parametros.
+	error_mas_parametros db "Se ingresaron mas parametros.",10 ;Reseva memoria para la cadena de caracteres
+ 								;que representa el error al ingresar parametros.
 	largo_error_mas_parametros equ $ - error_mas_parametros
 	
-	error_guionh db "Ingreso de parametro invalido",10 ;Reseva memoria para la cadena de caracteres 							;que representa el error al ingresar parametro invalido.
+	error_guionh db "Ingreso de parametro invalido",10 ;Reseva memoria para la cadena de caracteres
+ 							;que representa el error al ingresar parametro invalido.
 	largo_error_guionh equ $ - error_guionh
 
-	ayuda db "Ayuda: ",10,"El programa debe ser invocado desde la linea de comando de la siguiente manera:",10,
-	"$ metricas [-h] | [ archivo_entrada | archivo_entrada archivo_salida ]",10,"Las opciones separadas por una 		barra vertical denotan posibles alternativas",10,"a llamadas por linea de comandos, y los parametros entre 		corchetes denotan",10,"parametros opcionales.",10,10,"Si se invoca el programa sin parametros, se debe ingresar 	por teclado las",10,"cadenas de caracteres, la secuencia de escape para fin de ingreso es ^D (Ctrl 		  D).",10,"Luego se mostraran por pantalla el resultado de las metricas calculadas.",10,10,"Si se invoca el 		programa unicamente con el nombre del archivo_entrada,",10,"se mostraran por pantalla el resultado de las 		metricas calculadas",10,"tomadas del archivo_entrada.",10,10,"Si se invoca el programa con el nombre del 		archivo_entrada y",10,"el nombre del archivo_salida. Se retornara el resultado de las metricas calculadas",10,"del archivo_entrada en el archivo_salida.",10 
+	ayuda db "Ayuda: ",10,"El programa debe ser invocado desde la linea de comando de la siguiente manera:",10
 	largo_ayuda equ $ - ayuda 
+	
+	ayuda2 db "$ metricas [-h] | [ archivo_entrada | archivo_entrada archivo_salida ]",10
+	largo_ayuda2 equ $ - ayuda2 
+
+	ayuda3 db "Las opciones separadas por una barra vertical denotan posibles alternativas",10,"a llamadas por linea de comandos, y los parametros entre corchetes denotan",10,"parametros opcionales.",10,10
+	largo_ayuda3 equ $ - ayuda3 
+	
+	ayuda4 db "Si se invoca el programa sin parametros, se debe ingresar por teclado las",10,"cadenas de caracteres, la secuencia de escape para fin de ingreso es ^D (Ctrl+D).",10,"Luego se mostraran por pantalla el resultado de las metricas calculadas.",10,10
+	largo_ayuda4 equ $ - ayuda4 
+	
+	ayuda5 db "Si se invoca elprograma unicamente con el nombre del archivo_entrada,",10,"se mostraran por pantalla el resultado de las metricas calculadas",10,"tomadas del archivo_entrada.",10,10
+	largo_ayuda5 equ $ - ayuda5 
+	
+	ayuda6 db "Si se invoca el programa con el nombre delarchivo_entrada y",10,"el nombre del archivo_salida. Se retornara el resultado de las metricas calculadas",10,"del archivo_entrada en el archivo_salida.",10,0
+	largo_ayuda6 equ $ - ayuda6
 
 	espacio db " ",10 ;Reserva memoria para el char espacio en blanco.
 	largo_espacio equ $ -espacio
 
-	;$
+	
 
 section .bss
 	buffer resb 100000 				;Reserva 1MB 
@@ -31,8 +54,10 @@ section .bss
 	contador_palabras resd 1 			;Reserva 32 bits para guardar el contador de palabras en entero.
 	contador_lineas resd 1 				;Reserva 32 bits para guardar el contador de lineas en entero.
 	contador_parrafos resd 1 			;Reserva 32 bits para guardar el contador de parrafos en entero.
-	ultimo resd 1 					;Reserva 32 bits para guardar el valor segun el tipo de simbolo 							;que se leyo. 1 si fue letra, 0 si fue simbolo.
-	es_palabra resd 1				;Reserva 32 bits para guardar el valor de 1 si esta leyendo una 							;palabra o 0 sino. 
+	ultimo resd 1 					;Reserva 32 bits para guardar el valor segun el tipo de simbolo
+ 							;que se leyo. 1 si fue letra, 0 si fue simbolo.
+	es_palabra resd 1				;Reserva 32 bits para guardar el valor de 1 si esta leyendo una
+ 							;palabra o 0 sino. 
 	contador_letras_string resd 1 			;Reserva 32 bits para guardar el contador de letras en string.
 	contador_palabras_string resd 1 		;Reserva 32 bits para guardar el contador de palabras en string.
 	contador_lineas_string resd 1 			;Reserva 32 bits para guardar el contador de lineas en string.
@@ -65,7 +90,8 @@ section .text
 		je dos_parametros 			;Si el valor de eax equivale a 3 salta a dos_parametros.
 		jg mas_parametros 			;Si el valor de eax es mayor de 3 salta a mas_parametros.
 	
-	;Rutina que crea un archivo temporal para guardar lo ingresado por consola para luego evaluar sus metricas y 		;mostrarlas por pantalla.
+	;Rutina que crea un archivo temporal para guardar lo ingresado por consola para luego evaluar sus metricas y
+ 	;mostrarlas por pantalla.
 	cero_parametros:
 		mov eax,8 				;Servicio sys_creat.
 		mov ebx,temporal 			;Nombre del archivo.
@@ -114,7 +140,8 @@ section .text
 		sub eax,2				;Resto 2 al registro eax.
 		ret					;Retorno
 	
-	;Rutina para cerrar un archivo, asume que el registro ebx contiene el descriptor del archivo a 		;cerrar.						
+	;Rutina para cerrar un archivo, asume que el registro ebx contiene el descriptor del archivo a
+ 	;cerrar.						
 	cerrar_archivo:					
 		mov eax,6 				;Servicio sys_close
 		int 80h 				;Invocacion del servicio.
@@ -151,7 +178,8 @@ section .text
 		push ebx				;Apila el registro ebx en la pila.
 	        jmp mostrar_metricas 			;Salta a mostrar_metricas.
 
-	;Rutina que llama a abrir el archivo de entrada, leerlo, calcular sus metricas y cerrarlo, luego abre el 	 ;archivo de salido y escribe las metricas calculadas.
+	;Rutina que llama a abrir el archivo de entrada, leerlo, calcular sus metricas y cerrarlo, luego abre el
+ 	 ;archivo de salido y escribe las metricas calculadas.
 	dos_parametros:					
 		pop ebx					;Desapila ebx que contiene el nombre del programa. 
 		pop ecx					;Desapila ecx que contiene el primer argumento.
@@ -171,7 +199,8 @@ section .text
 		push ebx				;Apila el registro ebx.
 		jmp mostrar_metricas			;Salta a mostrar_metricas.
 	
-	;Rutina que sale del programa con error por ingresar mas parametros de los 		;permitidos.					
+	;Rutina que sale del programa con error por ingresar mas parametros de los
+ 	;permitidos.					
 	mas_parametros:					
 		mov eax,4 				;Servicio sys_write.	
 		mov ebx,1 				;Salida estandar.
@@ -189,7 +218,8 @@ section .text
 		mov ebx,0 				;Terminación normal sin errores.
 		int 80h 				;invocacion al servicio.
 	
-	;Rutina que lee el texto ingresado por consola y lo guarda en el buffer. Termina de leer cuando se lee el fin 		;de transmisión.
+	;Rutina que lee el texto ingresado por consola y lo guarda en el buffer. Termina de leer cuando se lee el fin
+ 	;de transmisión.
 	leer_consola:  
 		mov eax,3 				;Servicio sys_read.
 		mov ebx,0 				;Entrada estandar.
@@ -234,33 +264,37 @@ section .text
 		cmp al,10 				;Comparo el caracter con el salto de linea.
 		je salto_de_linea 			;Si es equivalente a salto de linea. Salto a salto_de_linea.
 		cmp al,09				;Comparo al caracter con el tabulador.
-		je separador				;Si es equivalente a tabulador, salto a separador_letra.
-		cmp al,32 				;Comparo el caracter con el ' '.
-		je separador	 			;Si es igual al ' ' salto a separador_letra.
-		cmp al,46 				;Comparo el caracter con el '.'.
-		je separador	 			;Si es igual al '.' salto a separador_letra.
-		cmp al,44 				;Comparo el caracter con el ','.
-		je separador	 			;Si es igual al ',' salto a separador_letra.
-		cmp al,59 				;Comparo el caracter con el ';'.
-		je separador	 			;Si es igual al ';' salto a separador_letra.
-		cmp al,58 				;Comparo el caracter con el ':'.
-		je separador	 			;Si es igual al ':' salto a separador_letra.
-		cmp al,65				;Comparo el caracter con 'A'.
-		jge mayor_A				;Si es mayor/igual al caracter'A' en la tabla ascii salta a 								;mayor_A.
-		cmp al,33				;Comparo el caracter con '!'
+		je caracter_sep				;Si es equivalente a tabulador, salto a separador_letra.
+		cmp al,' ' 				;Comparo el caracter con el ' '.
+		je caracter_sep	 			;Si es igual al ' ' salto a separador_letra.
+		cmp al,'.' 				;Comparo el caracter con el '.'.
+		je caracter_sep	 			;Si es igual al '.' salto a separador_letra.
+		cmp al,',' 				;Comparo el caracter con el ','.
+		je caracter_sep	 			;Si es igual al ',' salto a separador_letra.
+		cmp al,';' 				;Comparo el caracter con el ';'.
+		je caracter_sep	 			;Si es igual al ';' salto a separador_letra.
+		cmp al,':' 				;Comparo el caracter con el ':'.
+		je caracter_sep	 			;Si es igual al ':' salto a separador_letra.
+		cmp al,'A'				;Comparo el caracter con 'A'.
+		jge mayor_A				;Si es mayor/igual al caracter'A' en la tabla ascii salta a
+ 							;mayor_A.
+		cmp al,'!'				;Comparo el caracter con '!'
 		jge simbolo				;Si es mayor/igual a '!' en la tabla ascii salta a simbolo.
 		jmp calcular_metricas			;Salto a calcular_metricas.
 					
+	caracter_sep:
+		call separador				;Llama a separador
+		jmp calcular_metricas			;Salta a calcular_metricas
 
 	mayor_A:
-		cmp al,90 				;Comparo el caracter con 'Z'.
+		cmp al,'Z' 				;Comparo el caracter con 'Z'.
 		jle es_letra 				;Si es menor/igual a 'Z' en ascii salto a es_letra.
-		cmp al,97 				;Comparo el caracter con 'a'.
+		cmp al,'a' 				;Comparo el caracter con 'a'.
 		jge mayor_a 				;Si es mayor/igual a 'a' en ascii salto a mayor_a.
 		jmp simbolo 				;Salto a simbolo.
 
 	mayor_a:
-		cmp al,122 				;Comparo el caracter con 'z'.
+		cmp al,'z' 				;Comparo el caracter con 'z'.
 		jle es_letra 				;Si es menor/igual a 'z' en ascii salto a es_letra.
 		jmp simbolo				;Salto a simbolo.
 		
@@ -275,6 +309,7 @@ section .text
 		je evaluar_palabra 			;Si fue letra salto a evaluar_palabra.
 		mov DWORD[es_palabra],1			;Muevo el valor 1 a es_palabra 	
 		ret					;Retorno
+							
 
 	evaluar_palabra:
 		mov DWORD[ultimo],0 			;Muevo el valor 0 a ultimo, porque lei un separador.
@@ -287,6 +322,7 @@ section .text
 		inc DWORD[contador_palabras] 		;Incremento el valor de contador_palabra.
 		mov esi,1				;Muevo el valor 1 a esi, porque conte una palabra.		
 		ret					;Retorno
+		
 
 	salto_de_linea:
 		inc DWORD[contador_lineas] 		;Incremento el valor de contador_linea.
@@ -341,15 +377,18 @@ section .text
 	.pop_chars:					
 		pop EAX					;Desapila el registro eax.
 		inc esi					;Incrementa el registro esi.
-		stosb					;Guarda en la direccion almacenada en el registro edi un byte 								;del registro de al.
+		stosb					;Guarda en la direccion almacenada en el registro edi un byte
+ 							;del registro de al.
 		dec ebx					;Descrementa el registro ebx.
 		cmp ebx, 0				;Compara el registro ebx con el valor 0.
 		jg .pop_chars				;Si el registro ebx es mayor a 0 salta a .pop_chars.
 		mov EAX, 0x0a				;Mueve el caracter de salto de linea al registro eax.
-		stosb					;Guarda en la direccion almacenada en el registro edi un byte 								;del registro de al.
+		stosb					;Guarda en la direccion almacenada en el registro edi un byte
+ 							;del registro de al.
 		ret					;Retorno
 	
-	;Rutina que muestra las metricas en pantalla o en el archivo de salida, segun como se haya seteado ebx en la 		;instrucción anterior.						
+	;Rutina que muestra las metricas en pantalla o en el archivo de salida, segun como se haya seteado ebx en la
+ 	;instrucción anterior.						
 	mostrar_metricas:				
 		mov eax, DWORD[contador_letras]		;Muevo el valor de contador_letras al registro eax.
 		mov edi, contador_letras_string		;Muevo contador_letras_string al registro edi.
@@ -452,4 +491,35 @@ section .text
 		mov ecx,ayuda 				;Texto a mostrar.
 		mov edx,largo_ayuda 			;Tamaño del texto.
 		int 80h					;Invocación al servicio.
+
+		mov eax,4 				;Servicio sys_write.
+		mov ebx,1 				;Salida estandar.
+		mov ecx,ayuda2 				;Texto a mostrar.
+		mov edx,largo_ayuda2 			;Tamaño del texto.
+		int 80h					;Invocación al servicio.
+
+		mov eax,4 				;Servicio sys_write.
+		mov ebx,1 				;Salida estandar.
+		mov ecx,ayuda3 				;Texto a mostrar.
+		mov edx,largo_ayuda3 			;Tamaño del texto.
+		int 80h					;Invocación al servicio.
+
+		mov eax,4 				;Servicio sys_write.
+		mov ebx,1 				;Salida estandar.
+		mov ecx,ayuda4 				;Texto a mostrar.
+		mov edx,largo_ayuda4 			;Tamaño del texto.
+		int 80h					;Invocación al servicio.
+
+		mov eax,4 				;Servicio sys_write.
+		mov ebx,1 				;Salida estandar.
+		mov ecx,ayuda5 				;Texto a mostrar.
+		mov edx,largo_ayuda5 			;Tamaño del texto.
+		int 80h					;Invocación al servicio.
+
+		mov eax,4 				;Servicio sys_write.
+		mov ebx,1 				;Salida estandar.
+		mov ecx,ayuda6 				;Texto a mostrar.
+		mov edx,largo_ayuda6 			;Tamaño del texto.
+		int 80h					;Invocación al servicio.
+
 		jmp salgo_sin_errores 			;Salta a salgo_sin_errores.
