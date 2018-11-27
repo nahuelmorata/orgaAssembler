@@ -251,8 +251,7 @@ section .text
 		mov ecx,buffer				;Lugar donde va a guardar lo que lee.
 		mov edx,1000000 			;Tamaño de la que va a leer.
 		int 80h 				;Invocación al servicio.
-		cmp eax,0				;Comparo al registro eax con el valor 0.
-		je mostrar_metricas			;Si es equivalente salta a mostrar_metricas.
+		
 		ret					;Retorno
 
 	;Rutina que calcula las metricas de lo leido en el buffer. 
